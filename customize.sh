@@ -1,35 +1,29 @@
-#!/sbin/sh
-# customize.sh - 纯净一键安装脚本 (零按键烦恼，所有设置交付 WebUI)
+#!/system/bin/sh
+# customize.sh - Magisk/KernelSU/SukiSU 模块安装脚本
+# 安装时写入默认配置（非交互式，避免音量键检测在部分设备上失效）
 
-SKIPUNZIP=0
+MODDIR="/data/adb/modules/fakeip-route-switcher"
+CONF_FILE="$MODDIR/config.env"
+FALLBACK_CONF="/data/local/tmp/fakeip_config.env"
 
-ui_print "***************************************************"
-ui_print "   FakeIP Route Switcher (Option 121 Polyfill)    "
-ui_print "***************************************************"
-ui_print ""
-ui_print ">> 正在安装模块组件..."
+# 默认配置（可通过 WebUI 或 fakeip-cfg 修改）
+DEFAULT_SSID="云海天涯两杳茫"
+DEFAULT_GW="192.168.31.39"
+DEFAULT_ROUTE="28.0.0.0/8"
+DEFAULT_IFACE="wlan0"
 
-# 预置初始配置（云海天涯两杳茫 + 192.168.31.39）
-cat <<EOF > "$MODPATH/config.env"
-TARGET_SSID_RAW="云海天涯两杳茫"
-TARGET_SSID_HEX="e4ba91e6b5b7e5a4a9e6b6afe4b8a4e69db3e88cab"
-NEXT_HOP_GATEWAY="192.168.31.39"
-TARGET_ROUTE="28.0.0.0/8"
-INTERFACE="wlan0"
-CHECK_INTERVAL=3
-EOF
+mkdir -p "$MODDIR"
 
-chmod 644 "$MODPATH/config.env"
-chmod 755 "$MODPATH/service.sh"
-chmod 755 "$MODPATH/webserver.sh"
-chmod 755 "$MODPATH/fakeip-cfg.sh"
+# 单行 printf 写入，确保与 ksu.exec 兼容
+printf 'TARGET_SSID_RAW="%s"\nNEXT_HOP_GATEWAY="%s"\nTARGET_ROUTE="%s"\nINTERFACE="%s"\nCHECK_INTERVAL=3\n' \
+    "$DEFAULT_SSID" "$DEFAULT_GW" "$DEFAULT_ROUTE" "$DEFAULT_IFACE" > "$CONF_FILE"
+chmod 644 "$CONF_FILE"
 
-ui_print " [√] 安装完成！"
-ui_print ""
-ui_print "==================================================="
-ui_print " ★ 默认配置: Wi-Fi[云海天涯两杳茫] 网关[192.168.31.39]"
-ui_print " ★ 手机重启后，使用任意浏览器打开本地 WebUI 即可修改:"
-ui_print "     http://127.0.0.1:28080"
-ui_print "   支持一键填入当前Wi-Fi、可视化查看旁路由挂载状态！"
-ui_print "==================================================="
-ui_print ""
+printf 'TARGET_SSID_RAW="%s"\nNEXT_HOP_GATEWAY="%s"\nTARGET_ROUTE="%s"\nINTERFACE="%s"\nCHECK_INTERVAL=3\n' \
+    "$DEFAULT_SSID" "$DEFAULT_GW" "$DEFAULT_ROUTE" "$DEFAULT_IFACE" > "$FALLBACK_CONF"
+chmod 644 "$FALLBACK_CONF"
+
+ui_print "- FakeIP Route Switcher 安装完成"
+ui_print "- 默认 SSID: $DEFAULT_SSID"
+ui_print "- 默认网关: $DEFAULT_GW"
+ui_print "- 请通过 SukiSU WebUI 或 fakeip-cfg 命令修改配置"

@@ -41,19 +41,9 @@
             margin: 0 auto;
             line-height: 1.5;
         }
-        header {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        h1 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
+        header { margin-bottom: 20px; text-align: center; }
+        h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 0.8rem; color: var(--text-muted); }
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -78,10 +68,7 @@
             background: var(--border);
             color: var(--text-muted);
         }
-        .status-badge.active {
-            background: var(--success-bg);
-            color: var(--success);
-        }
+        .status-badge.active { background: var(--success-bg); color: var(--success); }
         .status-row {
             display: flex;
             justify-content: space-between;
@@ -90,9 +77,7 @@
             border-bottom: 1px dashed var(--border);
         }
         .status-row:last-child { border-bottom: none; }
-        .form-group {
-            margin-bottom: 14px;
-        }
+        .form-group { margin-bottom: 14px; }
         label {
             display: block;
             font-size: 0.85rem;
@@ -100,11 +85,7 @@
             margin-bottom: 6px;
             color: var(--text);
         }
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            gap: 8px;
-        }
+        .input-wrapper { position: relative; display: flex; gap: 8px; }
         input {
             flex: 1;
             padding: 9px 12px;
@@ -116,9 +97,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        input:focus {
-            border-color: var(--primary);
-        }
+        input:focus { border-color: var(--primary); }
         .btn {
             background: var(--primary);
             color: #ffffff;
@@ -138,12 +117,7 @@
             color: var(--text);
         }
         .btn-outline:hover { background: var(--border); }
-        .btn-block {
-            width: 100%;
-            padding: 11px;
-            font-size: 0.95rem;
-            margin-top: 6px;
-        }
+        .btn-block { width: 100%; padding: 11px; font-size: 0.95rem; margin-top: 6px; }
         .toast {
             display: none;
             padding: 10px 14px;
@@ -152,21 +126,9 @@
             margin-bottom: 14px;
             text-align: center;
         }
-        .toast.success {
-            display: block;
-            background: var(--success-bg);
-            color: var(--success);
-        }
-        .toast.error {
-            display: block;
-            background: #fee2e2;
-            color: var(--danger);
-        }
-        .hint {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
+        .toast.success { display: block; background: var(--success-bg); color: var(--success); }
+        .toast.error { display: block; background: #fee2e2; color: var(--danger); }
+        .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -235,8 +197,16 @@
 
         async function runShell(cmd) {
             if (isKsuNative) {
-                return ksu.exec(cmd);
+                try {
+                    const result = await ksu.exec(cmd);
+                    console.log('[runShell] cmd:', cmd, 'result:', result);
+                    return result;
+                } catch (err) {
+                    console.error('[runShell] error:', err);
+                    return { stdout: '', stderr: String(err) };
+                }
             }
+            console.warn('[runShell] ksu not available');
             return null;
         }
 
@@ -317,8 +287,9 @@
             }
 
             // 通过 fakeip-cfg 单行命令保存并热生效
-            const setCmd = `/data/adb/modules/fakeip-route-switcher/fakeip-cfg.sh set "${ssid}" "${gw}" "${route}"`;
-            const applyCmd = `/data/adb/modules/fakeip-route-switcher/fakeip-cfg.sh apply`;
+            const scriptPath = '/data/adb/modules/fakeip-route-switcher/fakeip-cfg.sh';
+            const setCmd = `${scriptPath} set "${ssid}" "${gw}" "${route}"`;
+            const applyCmd = `${scriptPath} apply`;
 
             const r1 = await runShell(setCmd);
             const r2 = await runShell(applyCmd);

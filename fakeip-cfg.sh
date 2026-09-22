@@ -61,22 +61,13 @@ case "$ACTION" in
         fi
 
         mkdir -p "$MODDIR"
-        cat <<EOF > "$CONF_FILE"
-TARGET_SSID_RAW="$NEW_SSID"
-NEXT_HOP_GATEWAY="$NEW_GW"
-TARGET_ROUTE="$NEW_ROUTE"
-INTERFACE="$INTERFACE"
-CHECK_INTERVAL=3
-EOF
+        # 单行 printf 写配置，兼容 SukiSU ksu.exec
+        printf 'TARGET_SSID_RAW="%s"\nNEXT_HOP_GATEWAY="%s"\nTARGET_ROUTE="%s"\nINTERFACE="%s"\nCHECK_INTERVAL=3\n' \
+            "$NEW_SSID" "$NEW_GW" "$NEW_ROUTE" "$INTERFACE" > "$CONF_FILE"
         chmod 644 "$CONF_FILE"
 
-        cat <<EOF > "$FALLBACK_CONF"
-TARGET_SSID_RAW="$NEW_SSID"
-NEXT_HOP_GATEWAY="$NEW_GW"
-TARGET_ROUTE="$NEW_ROUTE"
-INTERFACE="$INTERFACE"
-CHECK_INTERVAL=3
-EOF
+        printf 'TARGET_SSID_RAW="%s"\nNEXT_HOP_GATEWAY="%s"\nTARGET_ROUTE="%s"\nINTERFACE="%s"\nCHECK_INTERVAL=3\n' \
+            "$NEW_SSID" "$NEW_GW" "$NEW_ROUTE" "$INTERFACE" > "$FALLBACK_CONF"
         chmod 644 "$FALLBACK_CONF"
 
         echo "{\"success\":true,\"message\":\"配置已更新\"}"
