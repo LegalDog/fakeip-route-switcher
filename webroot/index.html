@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeIP 路由分流管理器</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --danger: #dc2626;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #3b82f6;
+                --primary-hover: #60a5fa;
+                --bg: #0f172a;
+                --card-bg: #1e293b;
+                --text: #f8fafc;
+                --text-muted: #94a3b8;
+                --border: #334155;
+                --success: #22c55e;
+                --success-bg: #052e16;
+                --danger: #ef4444;
+            }
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 16px 14px 40px;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            background: var(--border);
+            color: var(--text-muted);
+        }
+        .status-badge.active {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 7px 0;
+            border-bottom: 1px dashed var(--border);
+        }
+        .status-row:last-child { border-bottom: none; }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 8px;
+        }
+        input {
+            flex: 1;
+            padding: 9px 12px;
+            border-radius: 9px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: var(--primary);
+        }
+        .btn {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 9px;
+            padding: 9px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover { background: var(--border); }
+        .btn-block {
+            width: 100%;
+            padding: 11px;
+            font-size: 0.95rem;
+            margin-top: 6px;
+        }
+        .toast {
+            display: none;
+            padding: 10px 14px;
+            border-radius: 9px;
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+        .toast.success {
+            display: block;
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .toast.error {
+            display: block;
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        .hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>FakeIP 路由分流管理器</h1>
+        <p class="subtitle">SukiSU / KernelSU 原生 WebUI 控制台</p>
+    </header>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="card">
+        <div class="card-title">
+            <span>实时链路状态</span>
+            <span id="status-badge" class="status-badge">检测中...</span>
+        </div>
+        <div class="status-row">
+            <span style="color:var(--text-muted)">当前连接 Wi-Fi:</span>
+            <strong id="st-cur-ssid">-</strong>
+        </div>
+        <div class="status-row">
+            <span style="color:var(--text-muted)">FakeIP 路由状态:</span>
+            <strong id="st-route">-</strong>
+        </div>
+        <div class="status-row">
+            <span style="color:var(--text-muted)">局域网物理接口:</span>
+            <strong id="st-iface">wlan0</strong>
+        </div>
+    </div>
+
+    <form id="cfg-form" class="card">
+        <div class="card-title">参数配置 (即时生效)</div>
+
+        <div class="form-group">
+            <label for="ssid">目标家庭 Wi-Fi (SSID)</label>
+            <div class="input-wrapper">
+                <input type="text" id="ssid" name="ssid" required placeholder="如：云海天涯两杳茫">
+                <button type="button" id="btn-sync-ssid" class="btn btn-outline" title="填入当前连接的Wi-Fi">填入当前</button>
+            </div>
+            <p class="hint">支持中文字符，离开该 Wi-Fi 时静态路由将自动销毁。</p>
+        </div>
+
+        <div class="form-group">
+            <label for="gw">旁路由网关 IP</label>
+            <input type="text" id="gw" name="gw" required pattern="^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$" placeholder="如：192.168.31.39">
+            <p class="hint">部署了 MSF / Mihomo 透明代理的 fnOS 主机 IP。</p>
+        </div>
+
+        <div class="form-group">
+            <label for="route">FakeIP 目标网段</label>
+            <input type="text" id="route" name="route" value="28.0.0.0/8" required>
+            <p class="hint">默认 28.0.0.0/8，保持与 MSF 配置一致。</p>
+        </div>
+
+        <button type="submit" class="btn btn-block">保存并应用设置</button>
+    </form>
+
+    <script>
+        const toast = document.getElementById('toast');
+        function showToast(msg, isError = false) {
+            toast.textContent = msg;
+            toast.className = 'toast ' + (isError ? 'error' : 'success');
+            setTimeout(() => { toast.className = 'toast'; }, 3000);
+        }
+
+        const isKsuNative = (typeof ksu !== 'undefined' && typeof ksu.exec === 'function');
+
+        async function runShell(cmd) {
+            if (isKsuNative) {
+                return ksu.exec(cmd);
+            }
+            return null;
+        }
+
+        async function loadData() {
+            try {
+                let curSSID = '';
+                let isMounted = false;
+                let confContent = '';
+
+                const r1 = await runShell('cmd wifi status 2>/dev/null | grep "Wifi is connected to" | awk -F\'"\' \'{print $2}\'');
+                curSSID = (r1 && r1.stdout) ? r1.stdout.trim() : '';
+                if (!curSSID) {
+                    const r1b = await runShell('dumpsys wifi 2>/dev/null | grep -E "mWifiInfo.*SSID" | head -n 1 | awk -F\'"\' \'{print $2}\'');
+                    curSSID = (r1b && r1b.stdout) ? r1b.stdout.trim() : '';
+                }
+
+                const r2 = await runShell('ip route show dev wlan0 2>/dev/null | grep "28.0.0.0/8"');
+                isMounted = (r2 && r2.stdout && r2.stdout.includes('28.0.0.0/8'));
+
+                const r3 = await runShell('cat /data/adb/modules/fakeip-route-switcher/config.env 2>/dev/null || cat /data/local/tmp/fakeip_config.env 2>/dev/null');
+                confContent = (r3 && r3.stdout) ? r3.stdout : '';
+
+                document.getElementById('st-cur-ssid').textContent = curSSID || '未连接或未识别';
+                const badge = document.getElementById('status-badge');
+                const stRoute = document.getElementById('st-route');
+                if (isMounted) {
+                    badge.textContent = '● 已注入旁路由';
+                    badge.className = 'status-badge active';
+                    stRoute.textContent = '28.0.0.0/8 -> 旁路由 (已生效)';
+                    stRoute.style.color = 'var(--success)';
+                } else {
+                    badge.textContent = '○ 未挂载 (原生主路由)';
+                    badge.className = 'status-badge';
+                    stRoute.textContent = '直出主路由 (未命中目标Wi-Fi)';
+                    stRoute.style.color = 'var(--text-muted)';
+                }
+
+                let targetSSID = '云海天涯两杳茫';
+                let nextHop = '192.168.31.39';
+                let targetRoute = '28.0.0.0/8';
+
+                const mSSID = confContent.match(/TARGET_SSID_RAW="([^"]+)"/);
+                if (mSSID) targetSSID = mSSID[1];
+                const mGW = confContent.match(/NEXT_HOP_GATEWAY="([^"]+)"/);
+                if (mGW) nextHop = mGW[1];
+                const mRoute = confContent.match(/TARGET_ROUTE="([^"]+)"/);
+                if (mRoute) targetRoute = mRoute[1];
+
+                if (!document.getElementById('ssid').value) {
+                    document.getElementById('ssid').value = targetSSID;
+                    document.getElementById('gw').value = nextHop;
+                    document.getElementById('route').value = targetRoute;
+                }
+            } catch (err) {
+                console.error('加载状态异常:', err);
+            }
+        }
+
+        document.getElementById('btn-sync-ssid').addEventListener('click', () => {
+            const cur = document.getElementById('st-cur-ssid').textContent;
+            if (cur && cur !== '未连接或未识别' && cur !== '-') {
+                document.getElementById('ssid').value = cur;
+                showToast(`已填入当前 Wi-Fi: ${cur}`);
+            } else {
+                showToast('当前未连接任何 Wi-Fi', true);
+            }
+        });
+
+        document.getElementById('cfg-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ssid = document.getElementById('ssid').value.trim();
+            const gw = document.getElementById('gw').value.trim();
+            const route = document.getElementById('route').value.trim();
+
+            if (!ssid || !gw) {
+                showToast('请填写完整 SSID 和网关 IP', true);
+                return;
+            }
+
+            // 通过 fakeip-cfg 单行命令保存并热生效
+            const setCmd = `/data/adb/modules/fakeip-route-switcher/fakeip-cfg.sh set "${ssid}" "${gw}" "${route}"`;
+            const applyCmd = `/data/adb/modules/fakeip-route-switcher/fakeip-cfg.sh apply`;
+
+            const r1 = await runShell(setCmd);
+            const r2 = await runShell(applyCmd);
+
+            let ok = false;
+            let msg = '未知错误';
+
+            if (r1 && r1.stdout) {
+                try {
+                    const j1 = JSON.parse(r1.stdout);
+                    ok = j1.success;
+                    msg = j1.message || j1.error || msg;
+                } catch (e) {
+                    msg = r1.stdout;
+                }
+            }
+            if (r2 && r2.stdout) {
+                try {
+                    const j2 = JSON.parse(r2.stdout);
+                    if (j2.message) msg = j2.message;
+                } catch (e) {}
+            }
+
+            if (ok) {
+                showToast('设置已保存并热生效！');
+            } else {
+                showToast('保存失败: ' + msg, true);
+            }
+
+            setTimeout(loadData, 1000);
+        });
+
+        loadData();
+        setInterval(loadData, 3000);
+    </script>
+</body>
+</html>
